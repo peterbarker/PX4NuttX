@@ -2341,6 +2341,7 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
   sdio_eventset_t wkupevent = 0;
   irqstate_t flags;
   int ret;
+  int oldwaitevents;
 
   /* There is a race condition here... the event may have completed before
    * we get here.  In this case waitevents will be zero, but wkupevents will
@@ -2351,6 +2352,12 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
   DEBUGASSERT(priv->waitevents != 0 || priv->wkupevent != 0);
 
   /* Check if the timeout event is specified in the event set */
+
+  oldwaitevents = priv->waitevents;
+  if (timeout && !(priv->waitevents & SDIOWAIT_TIMEOUT))
+    {
+      priv->waitevents |= SDIOWAIT_TIMEOUT;
+    }
 
   if ((priv->waitevents & SDIOWAIT_TIMEOUT) != 0)
     {
@@ -2421,6 +2428,7 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
         }
     }
 
+  priv->waitevents = oldwaitevents;
   /* Disable event-related interrupts */
 
   stm32_configwaitints(priv, 0, 0, 0);
